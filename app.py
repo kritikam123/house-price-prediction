@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 import numpy as np
+import json
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
@@ -12,6 +13,12 @@ st.set_page_config(
 # ---------- LOAD MODEL ----------
 with open("bangalore_home_prices_model.pickle", "rb") as f:
     model = pickle.load(f)
+
+with open("columns.json", "r") as f:
+    data_columns = json.load(f)
+
+locations = data_columns[3:]  # first 3 are sqft, bath, bhk
+
 
 # ---------- CUSTOM CSS ----------
 st.markdown("""
@@ -49,43 +56,50 @@ footer {
 # ---------- HEADER ----------
 st.markdown('<div class="title">🏡 HomeWorth</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="subtitle">An aesthetic ML-powered real estate price predictor</div>',
+    '<div class="subtitle">A ML-powered real estate price predictor</div>',
     unsafe_allow_html=True
 )
 
 # ---------- SIDEBAR INPUT ----------
-st.sidebar.header("🏠 Property Details")
+st.sidebar.header("Property Details")
 
-location = st.sidebar.number_input(
-    "📍 Location (Encoded)",
-    min_value=0,
-    help="Encoded value used during model training"
+location = st.sidebar.selectbox(
+    " Location",
+    sorted(locations)
 )
 
+
 sqft = st.sidebar.slider(
-    "📐 Total Area (sqft)",
+    " Total Area (sqft)",
     min_value=300,
     max_value=5000,
     step=50
 )
 
 bhk = st.sidebar.selectbox(
-    "🛏️ BHK",
+    " BHK",
     options=[1, 2, 3, 4, 5]
 )
 
 bath = st.sidebar.selectbox(
-    "🛁 Bathrooms",
+    " Bathrooms",
     options=[1, 2, 3, 4]
 )
 
 st.sidebar.markdown("---")
-st.sidebar.caption("✨ Built with Machine Learning")
 
-# ---------- PREDICTION ----------
-if st.button("✨ Predict Home Value"):
-    input_data = np.array([[location, sqft, bath, bhk]])
-    prediction = model.predict(input_data)[0]
+if st.button("Predict Home Value"):
+    x = np.zeros(len(data_columns))
+
+    x[0] = sqft
+    x[1] = bath
+    x[2] = bhk
+
+    if location in data_columns:
+        loc_index = data_columns.index(location)
+        x[loc_index] = 1
+
+    prediction = model.predict([x])[0]
 
     st.markdown(
         f"""
@@ -97,6 +111,6 @@ if st.button("✨ Predict Home Value"):
         unsafe_allow_html=True
     )
 
+
 # ---------- FOOTER ----------
 st.markdown("<br><br>", unsafe_allow_html=True)
-st.caption("Made with 💚 using Streamlit & Machine Learning")
